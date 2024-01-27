@@ -42,56 +42,78 @@ def disjunctive_normal_form(expr):
     return to_dnf(expr)
 
 def simplify_expression(expr):
-    return expr.simplify()
+    return simplify_logic(expr)
 
 def eliminate_overlaps(expr):
     while True:
-        overlaps = find_overlaps(expr)
-        if not overlaps:
+        common_attributes = find_overlaps(expr)
+        if not common_attributes:
             break
 
-        expr = resolve_overlaps(expr, overlaps)
+        expr = resolve_overlaps(expr, common_attributes)
 
     return expr
 
 def find_overlaps(expr):
+
+    common_attributes = set()
+
+    # for i in range(len(disjunctions)):
+    #     for j in range(i+1, len(disjunctions)):
+    #         common_attributes |= set(disjunctions[i].atoms()) & set(disjunctions[j].atoms())
+    for i, conj in enumerate(expr.args):
+        for j, other_conj in enumerate(expr.args[i+1:], i+1):
+            common_attributes |= set(literal for literal in conj.args if literal in other_conj.args)
+
+
+    return common_attributes
+
+def resolve_overlaps(expr, common_attributes):
     disjunctions = expr.args if isinstance(expr, Or) else [expr]
-    overlaps = []
+    o = common_attributes.pop()
 
-    for i in range(len(disjunctions)):
-        for j in range(i+1, len(disjunctions)):
-            common_attributes = set(disjunctions[i].atoms()) & set(disjunctions[j].atoms())
-            if common_attributes:
-                overlaps.append((i, j + i + 1, common_attributes))
-
-    return overlaps
-
-
-
-def resolve_overlaps(expr, overlaps):
-    for overlap in overlaps:
-        literal = overlap[2].pop()
-        conj1_index, conj2_index = overlap[0], overlap[1]
-
-        expr = replace_overlapping_conjunctions(expr, conj1_index, conj2_index, literal)
+    # new_dnf = []
+    # for disj in disjunctions:
+    #     conj = disj.args if isinstance(disj, And) else [disj]
+    #     if o in conj:
+    #         new_dnf.append(And(*conj))
+    #     else:
+    #         new_dnf.append(Or(And(o, *conj), And(Not(o), *conj)))
+    # simplified_expr = Or(*new_dnf)
+    # Step 3.2: replace all conjunctions x_i of e with (o & x_i) | (~o & x_i).
+    processed_conjs = set()
+    while True:
+        new_dnf = []
+        for conj in expr.args:
+            if conj in processed_conjs:
+                new_dnf.append(conj)
+                continue
+            if o in conj.args:
+                new_dnf.append(conj)
+            else:
+                new_dnf.append(Or(And(o, *conj.args), And(Not(o), *conj.args)))
+            processed_conjs.add(conj)
+        new_simplified_dnf = simplify_logic(Or(*new_dnf))
+        if new_simplified_dnf == expr:
+            break
+        expr = new_simplified_dnf
 
     return expr
-
-def replace_overlapping_conjunctions(expr, conj1_index, conj2_index, literal):
-    conjunctions = expr.args if isinstance(expr, And) else [expr]
-
-    conj1 = conjunctions[conj1_index]
-    conj2 = conjunctions[conj2_index]
-
-    new_conj1 = (literal & conj1) | (~literal & conj1)
-    new_conj2 = (~literal & conj2) | (literal & conj2)
-
-    conjunctions.pop(conj2_index)
-    conjunctions.pop(conj1_index)
-    conjunctions.append(new_conj1)
-    conjunctions.append(new_conj2)
-
-    return Or(*conjunctions)
+# def replace_overlapping_conjunctions(expr, conj1_index, conj2_index, literal):
+#     conjunctions = expr.args if isinstance(expr, And) else [expr]
+#
+#     conj1 = conjunctions[conj1_index]
+#     conj2 = conjunctions[conj2_index]
+#
+#     new_conj1 = (literal & conj1) | (~literal & conj1)
+#     new_conj2 = (~literal & conj2) | (literal & conj2)
+#
+#     conjunctions.pop(conj2_index)
+#     conjunctions.pop(conj1_index)
+#     conjunctions.append(new_conj1)
+#     conjunctions.append(new_conj2)
+#
+#     return Or(*conjunctions)
 
 if __name__ == "__main__":
     # Example usage
