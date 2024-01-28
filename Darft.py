@@ -42,17 +42,16 @@ def disjunctive_normal_form(expr):
     return to_dnf(expr)
 
 def simplify_expression(expr):
-    return simplify_logic(expr)
+    return simplify_logic(expr, form="dnf")
 
 def eliminate_overlaps(expr):
-    while True:
-        common_attributes = find_overlaps(expr)
-        if not common_attributes:
-            break
-
-        expr = resolve_overlaps(expr, common_attributes)
-
-    return expr
+  while True:
+    common_attributes = find_overlaps(expr)
+    if common_attributes:
+      o = common_attributes.pop()
+      expr = resolve_overlaps(expr, o)
+    break
+  return expr
 
 def find_overlaps(expr):
 
@@ -68,52 +67,29 @@ def find_overlaps(expr):
 
     return common_attributes
 
-def resolve_overlaps(expr, common_attributes):
-    disjunctions = expr.args if isinstance(expr, Or) else [expr]
-    o = common_attributes.pop()
+def resolve_overlaps(expr, o):
+  disjunctions = expr.args if isinstance(expr, Or) else expr
+  print(f"disjunctions: {disjunctions}")
 
-    # new_dnf = []
-    # for disj in disjunctions:
-    #     conj = disj.args if isinstance(disj, And) else [disj]
-    #     if o in conj:
-    #         new_dnf.append(And(*conj))
-    #     else:
-    #         new_dnf.append(Or(And(o, *conj), And(Not(o), *conj)))
-    # simplified_expr = Or(*new_dnf)
-    # Step 3.2: replace all conjunctions x_i of e with (o & x_i) | (~o & x_i).
-    processed_conjs = set()
-    while True:
-        new_dnf = []
-        for conj in expr.args:
-            if conj in processed_conjs:
-                new_dnf.append(conj)
-                continue
-            if o in conj.args:
-                new_dnf.append(conj)
-            else:
-                new_dnf.append(Or(And(o, *conj.args), And(Not(o), *conj.args)))
-            processed_conjs.add(conj)
-        new_simplified_dnf = simplify_logic(Or(*new_dnf))
-        if new_simplified_dnf == expr:
-            break
-        expr = new_simplified_dnf
 
-    return expr
-# def replace_overlapping_conjunctions(expr, conj1_index, conj2_index, literal):
-#     conjunctions = expr.args if isinstance(expr, And) else [expr]
-#
-#     conj1 = conjunctions[conj1_index]
-#     conj2 = conjunctions[conj2_index]
-#
-#     new_conj1 = (literal & conj1) | (~literal & conj1)
-#     new_conj2 = (~literal & conj2) | (literal & conj2)
-#
-#     conjunctions.pop(conj2_index)
-#     conjunctions.pop(conj1_index)
-#     conjunctions.append(new_conj1)
-#     conjunctions.append(new_conj2)
-#
-#     return Or(*conjunctions)
+  new_dnf = []
+  for conj in disjunctions:
+    print(f"Processing conjunction: {conj}")
+    if o in conj.free_symbols:
+      print(f"Conjunctions {conj} contains {o}")
+      new_dnf.append(conj)
+    else:
+      print(f"Conjunctions {conj} does not contain {o}")
+      new_dnf.append(And(o, conj))
+      new_dnf.append(And(Not(o), conj))
+
+  print(f"New DNF: {new_dnf}")
+
+  # Create a new Or object directly using the *args syntax
+  expr = Or(*new_dnf)
+
+  return expr
+
 
 if __name__ == "__main__":
     # Example usage
