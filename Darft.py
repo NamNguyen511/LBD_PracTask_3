@@ -113,5 +113,5 @@ if _name_ == "_main_":
     print("Expression without Overlaps:", expr_without_overlaps)
 
     # Step 4: Transform innermost disjunctions to conjunctions and negations
-    final_result = expr_without_overlaps.to_anf()
-    print("Final Result after applying de Morgan law:", final_result)
+    # final_result = expr_without_overlaps.to_anf()
+    # print("Final Result after applying de Morgan law:", final_result)
