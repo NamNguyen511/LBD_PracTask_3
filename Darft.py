@@ -1,6 +1,6 @@
-from sympy import simplify, lambdify
-from sympy.logic.boolalg import Or, And, Not, to_dnf, simplify_logic
-from sympy.abc import x, y, z  # Assuming your logical expressions involve these variables
+from sympy import simplify, lambdify, simplify_logic
+from sympy.logic.boolalg import Or, And, Not, to_dnf
+
 
 # Define variables and weights
 variables = ['a', 'b', 'c', 'd', 'e']
@@ -42,72 +42,56 @@ def disjunctive_normal_form(expr):
     return to_dnf(expr)
 
 def simplify_expression(expr):
-    return expr.simplify()
+    return simplify_logic(expr, form="dnf")
 
 def eliminate_overlaps(expr):
-    while True:
-        overlaps = find_overlaps(expr)
-        if not overlaps:
-            break
-
-        expr = resolve_overlaps(expr, overlaps)
-
-    return expr
+  while True:
+    common_attributes = find_overlaps(expr)
+    if common_attributes:
+      o = common_attributes.pop()
+      expr = resolve_overlaps(expr, o)
+    break
+  return expr
 
 def find_overlaps(expr):
-    conjunctions = expr.args if isinstance(expr, And) else [expr]
-    overlaps = []
-
-    for i, conj1 in enumerate(conjunctions):
-        for j, conj2 in enumerate(conjunctions[i + 1:]):
-            common_attributes = find_common_attributes(conj1, conj2)
-            if common_attributes:
-                overlaps.append((i, j + i + 1, common_attributes))
-
-    return overlaps
-
-def find_common_attributes(conj1, conj2):
-    literals1 = conj1.args if isinstance(conj1, And) else [conj1]
-    literals2 = conj2.args if isinstance(conj2, And) else [conj2]
 
     common_attributes = set()
-    for lit1 in literals1:
-        if isinstance(lit1, Not):
-            lit1 = lit1.args[0]
-        for lit2 in literals2:
-            if isinstance(lit2, Not):
-                lit2 = lit2.args[0]
-            if lit1 == lit2:
-                common_attributes.add(lit1)
+
+    # for i in range(len(disjunctions)):
+    #     for j in range(i+1, len(disjunctions)):
+    #         common_attributes |= set(disjunctions[i].atoms()) & set(disjunctions[j].atoms())
+    for i, conj in enumerate(expr.args):
+        for j, other_conj in enumerate(expr.args[i+1:], i+1):
+            common_attributes |= set(literal for literal in conj.args if literal in other_conj.args)
+
 
     return common_attributes
 
-def resolve_overlaps(expr, overlaps):
-    for overlap in overlaps:
-        literal = overlap[2].pop()
-        conj1_index, conj2_index = overlap[0], overlap[1]
+def resolve_overlaps(expr, o):
+  disjunctions = expr.args if isinstance(expr, Or) else expr
+  print(f"disjunctions: {disjunctions}")
 
-        expr = replace_overlapping_conjunctions(expr, conj1_index, conj2_index, literal)
 
-    return simplify_expression(expr)
+  new_dnf = []
+  for conj in disjunctions:
+    print(f"Processing conjunction: {conj}")
+    if o in conj.free_symbols:
+      print(f"Conjunctions {conj} contains {o}")
+      new_dnf.append(conj)
+    else:
+      print(f"Conjunctions {conj} does not contain {o}")
+      new_dnf.append(And(o, conj))
+      new_dnf.append(And(Not(o), conj))
 
-def replace_overlapping_conjunctions(expr, conj1_index, conj2_index, literal):
-    conjunctions = expr.args if isinstance(expr, Or) else [expr]
+  print(f"New DNF: {new_dnf}")
 
-    conj1 = conjunctions[conj1_index]
-    conj2 = conjunctions[conj2_index]
+  # Create a new Or object directly using the *args syntax
+  expr = Or(*new_dnf)
 
-    new_conj1 = (literal & conj1) | (~literal & conj1)
-    new_conj2 = (~literal & conj2) | (literal & conj2)
+  return expr
 
-    conjunctions.pop(conj2_index)
-    conjunctions.pop(conj1_index)
-    conjunctions.append(new_conj1)
-    conjunctions.append(new_conj2)
 
-    return Or(*conjunctions)
-
-if __name__ == "__main__":
+if _name_ == "_main_":
     # Example usage
     input_expr = user_input()
     print("Original Expression:", input_expr)
@@ -119,6 +103,10 @@ if __name__ == "__main__":
     # Step 2: Simplify expression
     simplified_expr = simplify_expression(dnf_expr)
     print("Simplified Expression:", simplified_expr)
+
+    # Find an overlaps
+    overlaps = find_overlaps(simplified_expr)
+    print("An overlap of this logical expression is:", overlaps)
 
     # Step 3: Eliminate overlaps
     expr_without_overlaps = eliminate_overlaps(simplified_expr)
