@@ -5,6 +5,7 @@ from sympy.logic.boolalg import Or, And, Not, to_dnf
 # Define variables and weights
 variables = ['a', 'b', 'c', 'd', 'e']
 weights = ['w_a','w_b','w_c','w_d','w_e']
+weight_map = dict(zip(variables, weights))
 
 def user_input():
     # Create dictionaries to store the values of the variables and weights
@@ -38,6 +39,26 @@ def user_input():
     # Get the logical expression from the user
     expr_str = input("Please input a logical expression: ")
     return expr_str
+
+def apply_weights(expr, weight_map):
+    print(f"Applying weights to: {expr}")
+
+    if isinstance(expr, And):
+        transformed = And(*(Or(Not(weight_map.get(arg, 1)), arg) for arg in expr.args))
+        print(f"Transformed And: {transformed}")
+        return transformed
+    elif isinstance(expr, Or):
+        transformed = Or(*(And(weight_map.get(arg, 1), arg) for arg in expr.args))
+        print(f"Transformed Or: {transformed}")
+        return transformed
+    elif isinstance(expr, Not):
+        transformed = Not(apply_weights(expr.args[0], weight_map))
+        print(f"Transformed Not: {transformed}")
+        return transformed
+    else:
+        print(f"No transformation needed for: {expr}")
+        return expr
+
 def disjunctive_normal_form(expr):
     return to_dnf(expr)
 
@@ -47,8 +68,8 @@ def simplify_expression(expr):
 def eliminate_overlaps(expr):
   while True:
     common_attributes = find_overlaps(expr)
-    if common_attributes:
-      o = common_attributes.pop()
+    for o in common_attributes:
+      # o = common_attributes.pop()
       expr = resolve_overlaps(expr, o)
     break
   return expr
@@ -63,7 +84,9 @@ def find_overlaps(expr):
     for i, conj in enumerate(expr.args):
         for j, other_conj in enumerate(expr.args[i+1:], i+1):
             common_attributes |= set(literal for literal in conj.args if literal in other_conj.args)
-
+    for attr in common_attributes:
+        if isinstance(attr, Not) and attr.args[0] in expr.args:
+            common_attributes.remove(attr)
 
     return common_attributes
 
@@ -91,10 +114,14 @@ def resolve_overlaps(expr, o):
   return expr
 
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     # Example usage
     input_expr = user_input()
     print("Original Expression:", input_expr)
+
+    # Adding weight
+    input_expr = apply_weights(input_expr, weight_map)
+    print("Input expression after applying weight", input_expr)
 
     # Step 1: Transform to disjunctive normal form
     dnf_expr = disjunctive_normal_form(input_expr)
