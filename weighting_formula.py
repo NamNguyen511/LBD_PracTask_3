@@ -10,6 +10,7 @@ def apply_weights(expr, weight_map):
     print(f"Applying weights to: {expr}")
 
     if isinstance(expr, And):
+
         transformed = And(*(Or(Not(weight_map.get(arg, 1)), arg) for arg in expr.args))
         print(f"Transformed And: {transformed}")
         return transformed
@@ -24,9 +25,12 @@ def apply_weights(expr, weight_map):
     else:
         print(f"No transformation needed for: {expr}")
         return expr
-
+    
 # Example usage
-input_expr = And(variables[0], variables[1]) | And(variables[2], variables[3]) | And(variables[4], Not(variables[1]))
+#input_expr = Or(variables[0], variables[1])
+#Or(a, And(b,c))
+input_expr= And(variables[1],variables[2])
+
 print("Original expression is:", input_expr)
 
 weighted_expr = apply_weights(input_expr, weight_map)

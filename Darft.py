@@ -1,11 +1,11 @@
-from sympy import simplify, lambdify, simplify_logic
+from sympy import simplify,symbols, lambdify, simplify_logic
 from sympy.logic.boolalg import Or, And, Not, to_dnf
-
+from schmitt_weighting import apply_weights
 
 # Define variables and weights
-variables = ['a', 'b', 'c', 'd', 'e']
-weights = ['w_a','w_b','w_c','w_d','w_e']
-
+variables = symbols('a b c d')
+weights = symbols('w_a w_b w_c w_d')
+weight_map = dict(zip(variables, weights))
 def user_input():
     # Create dictionaries to store the values of the variables and weights
     var_values = {}
@@ -91,13 +91,15 @@ def resolve_overlaps(expr, o):
   return expr
 
 
-if _name_ == "_main_":
+if __name__ == "__main__":
     # Example usage
-    input_expr = user_input()
-    print("Original Expression:", input_expr)
-
+    #input_expr = user_input()
+    #print("Original Expression:", input_expr)
+    input_expr1 = Or(variables[0], And(variables[1], variables[2]))
+    exper= apply_weights(input_expr1,weight_map)
+    print("Exper from schmitt weighting:", exper)
     # Step 1: Transform to disjunctive normal form
-    dnf_expr = disjunctive_normal_form(input_expr)
+    dnf_expr = disjunctive_normal_form(exper)
     print("Disjunctive Normal Form:", dnf_expr)
 
     # Step 2: Simplify expression
